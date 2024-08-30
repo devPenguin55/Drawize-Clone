@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draw</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+</head>
+<body style="overflow: hidden;">
+    <style>
+        * {
+            box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            font-family: system-ui;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        #toolbar {
+            width: calc(100% + 20px);
+            height: 55px;
+            margin-top: -10px; 
+            padding: 20px;
+            background-color: #2f2f2f;
+            color: white;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-left: -10px;
+
+        }
+
+        .radiusControl {
+            width: 30px;
+            height: 30px;
+            background-color: #4f4f4f;
+            display: inline-block;
+            text-align: center;
+            line-height: 30px;
+            cursor: pointer;
+        }
+
+        #radius {
+            float: left;
+        }
+
+        #colors {
+            float: right;
+            display: flex;
+            align-items: center;
+        }
+
+        .swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 15px;
+            display: inline-block;
+            border: 1px dotted wheat;
+            margin-left: 10px;
+        }
+
+        #colorPicker {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background-color: transparent;
+            cursor: pointer;
+        }
+
+        #eraser {
+            width: 60px;
+            height: 30px;
+            background-color: #4f4f4f;
+            text-align: center;
+            line-height: 30px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        #clear {
+            width: 60px;
+            height: 30px;
+            background-color: #4f4f4f;
+            text-align: center;
+            line-height: 30px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .swatch.active, #eraser.active {
+            border: 2px groove rgb(177, 177, 177);
+        }
+
+        #word {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            padding-bottom: 10px;
+            margin-top:0;
+            margin-bottom: 10;
+        }
+
+        #timeLeft {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            padding-bottom: 10px;
+            margin-top:20px;
+            margin-bottom: 10px;
+            
+            background-color: #d6e1f1;
+            padding: 10px;
+            border: #7c92b1 solid 3px;
+            border-radius: 10px;
+        }
+
+        @keyframes slide {
+            0% { left: -100%; }
+            35% { left: 50%; transform: translateX(-50%); }
+            65% { left: 50%; transform: translateX(-50%); }
+            100% { left: 120%; }
+        }
+
+        .guess-box {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #fffb;
+            padding: 10px;
+            border-radius: 10px;
+            width: auto;
+            max-width: 300px;
+            text-align: center;
+            animation: slide 3s ease-in-out;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+    </style>
+    <div id="toolbar">
+        <div id="radius">
+            Thickness <span id="radiusValue" style="padding-right: 8px;">10</span>
+            <div id="decreaseRadius" class="radiusControl">-</div>
+            <div id="increaseRadius" class="radiusControl">+</div>
+        </div>
+        <div id="colors">
+            <input type="color" id="colorPicker" class="swatch">
+            <div id="eraser">Eraser</div>
+            <div id="clear">Clear</div>
+        </div>
+        
+    </div>
+    <h1 id="word">{{ word }}</h1>
+    
+    <h6 id="room" hidden>{{ room }}</h6>
+    <h6 id="username" hidden>{{ username }}</h6>
+    <canvas id="drawingCanvas" style="border:1px solid #000000; margin-top: 50px; margin-left: -10px;"></canvas>
+    <h1 id="timeLeft">Time: 1:30</h1>
+    <script type="text/javascript">
+        const localRoom = document.getElementById('room').textContent;
+        const localUsername = document.getElementById('username').textContent;
+        const timeLeftElement = document.getElementById('timeLeft')
+
+        const link = 'http://' + document.domain + ':' + location.port;
+        var socket = io.connect(link)
+
+        var sendFullImage = function(data) {
+            socket.emit("fullImage", data)
+        };
+
+        var sendNewPacket = function(packet) {
+            socket.emit("newPacket", packet)
+        }
+
+        socket.on('connect', function() {
+            console.log('User Connected');
+            socket.emit('startTimeCountdown', {'room':localRoom, 'username':localUsername});
+        });
+
+        socket.on('giveNewClientImage', function() {
+            console.log('Sending drawing to new client')
+            sendFullImage({"packet":drawingData, "room":localRoom})
+        });
+
+        socket.on('updateTimeCountdown', function(data) {
+            console.log('update?', data)
+            if (data['username'] == localUsername & data['room'] == localRoom) {
+                timeLeftElement.textContent = 'Time: ' + data['timeLeft']
+            }
+        });
+
+        socket.on('userGuessedWord', function(data) {
+            const room = data['room'];
+            const username = data['username'];
+            if (room == localRoom) {
+                const guessBox = document.createElement('div');
+                guessBox.className = 'guess-box';
+                guessBox.textContent = `${username} guessed the word!`;
+
+                document.body.appendChild(guessBox);
+
+                guessBox.addEventListener('animationend', () => {
+                    guessBox.remove();
+                });
+            }
+        });
+
+        socket.on('endRound', function(data) {
+            const room = data['room']
+            if (room == localRoom) {
+                window.location.href = '/gameWait'
+            }
+        });
+
+        socket.on('animateNewGuess', function(data) {
+            const room = data['room'];
+            const username = data['username'];
+            const guess = data['guess'];
+            if (room == localRoom) {
+                const guessBox = document.createElement('div');
+                guessBox.className = 'guess-box';
+                guessBox.textContent = `${username}: ${guess}`;
+
+                document.body.appendChild(guessBox);
+
+                guessBox.addEventListener('animationend', () => {
+                    guessBox.remove();
+                });
+            }
+        });
+
+        //////////////////////////// drawing
+        const canvas = document.getElementById("drawingCanvas");
+        const ctx = canvas.getContext("2d");
+
+        var mouseCurrentlyDown = false;
+        var firstStart = true;
+        
+        var radius = 10;
+        var drawingRadius = 5;
+        var eraserRadius = 20;
+        var color = "red";
+        var dragging = false;
+        var erasing = false;
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight * 0.5;
+
+        ctx.lineWidth = radius * 2;
+
+        var getCoordinates = function(e) {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches) {
+                return {
+                    x: (e.touches[0].clientX - rect.left) / canvas.width,
+                    y: (e.touches[0].clientY - rect.top) / canvas.height
+                };
+            } else {
+                return {
+                    x:( e.clientX - rect.left) / canvas.width,
+                    y: (e.clientY - rect.top) / canvas.height
+                };
+            }
+        };
+
+        var drawImage = function(data_) {
+            ctx.lineWidth = radius * 2
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            for (let i = 0; i < data_.length; i++) {
+                let data = data_[i];
+            
+                if (data[0] === "start") {
+                    // New stroke
+                    let [_, startX, startY, color_, radius_] = data;
+                    startX *= canvas.width
+                    startY *= canvas.height
+                    ctx.lineWidth = radius_ * 2;
+                    ctx.beginPath();
+                    ctx.arc(startX, startY, radius_, 0, Math.PI * 2);
+                    ctx.fillStyle = color_;
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                } else {
+                    // Line segment
+                    let [startX, startY, endX, endY, color_, radius_] = data;
+                    startX *= canvas.width
+                    startY *= canvas.height
+                    endX *= canvas.width
+                    endY *= canvas.height
+                    ctx.lineWidth = radius_ * 2;
+                    ctx.strokeStyle = color_;
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(endX, endY, radius_, 0, Math.PI * 2);
+                    ctx.fillStyle = color_;
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(endX, endY);
+                }
+            }
+        }
+
+        var drawingData = [];
+        var prevPoint = null;
+        var putPoint = function(e) {
+            if (dragging) {
+                const { x, y } = getCoordinates(e);
+                
+                if (prevPoint) {
+                    const [prevX, prevY] = prevPoint;
+                    var packet = [prevX, prevY, x, y, erasing ? "#FFFFFF" : color, radius];
+                } else {
+                    var packet = ["start", x, y, erasing ? "#FFFFFF" : color, radius];
+                }
+
+                prevPoint = [x, y];
+
+                ctx.strokeStyle = erasing ? "#FFFFFF" : color;
+                if (!firstStart) {
+                    ctx.lineTo(x*canvas.width, y*canvas.height);
+                    ctx.stroke();
+                } else {
+                    firstStart = false;
+                }
+                ctx.beginPath();
+                ctx.arc(x*canvas.width, y*canvas.height, radius, 0, Math.PI * 2);
+                ctx.fillStyle = erasing ? "#FFFFFF" : color;
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(x*canvas.width, y*canvas.height);
+                
+                drawingData.push(packet);
+
+                sendNewPacket({"packet":packet, 'room':localRoom})
+            }
+        };
+
+        var engage = function(e) {
+            dragging = true;
+            prevPoint = null;
+            putPoint(e);
+        };
+
+        var disengage = function() {
+            dragging = false;
+            prevPoint = null;
+            ctx.beginPath();
+        };
+
+        var entering = function() {
+            if (mouseCurrentlyDown) {
+                dragging = true;
+                ctx.beginPath();
+                drawingData.push(["beginPath"]);
+                sendNewPacket({"packet":beginPath, "room":localRoom})
+            } else {
+                dragging = false;
+                firstStart = true;
+            }
+        };
+
+        window.addEventListener('resize', function() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight * 0.5;
+            drawImage(drawingData)
+        });
+
+        canvas.addEventListener('mousedown', engage);
+        canvas.addEventListener('mouseup', disengage);
+        canvas.addEventListener('mousemove', putPoint);
+        canvas.addEventListener('mouseenter', entering);
+        
+        // mobile
+        canvas.addEventListener('touchstart', engage);
+        canvas.addEventListener('touchend', disengage);
+        canvas.addEventListener('touchmove', putPoint);
+
+        document.addEventListener('mousedown', () => mouseCurrentlyDown = true);
+        document.addEventListener('mouseup', () => mouseCurrentlyDown = false);
+
+        //////////////////////////// toolbar
+        var minRadius = 0.5, 
+            maxRadius = 100, 
+            defaultRadius = 5,
+            interval = 5, 
+            radiusSpan = document.getElementById("radiusValue"),
+            decreaseRadius = document.getElementById("decreaseRadius"),
+            increaseRadius = document.getElementById("increaseRadius");
+
+        var setRadius = function (newRadius) {
+            if (newRadius < minRadius) {
+                newRadius = minRadius;
+            } else if (newRadius > maxRadius) {
+                newRadius = maxRadius;
+            }
+
+            if (newRadius != 0.5) {
+                newRadius = Math.floor(newRadius);
+            }
+
+            radius = newRadius;
+            ctx.lineWidth = newRadius * 2;
+
+            radiusSpan.innerHTML = newRadius;
+
+            if (erasing) {
+                eraserRadius = newRadius;
+            } else {
+                drawingRadius = newRadius;
+            }
+        };
+
+        decreaseRadius.addEventListener("click", function() {
+            setRadius(radius - interval);
+        });
+
+        increaseRadius.addEventListener("click", function() {
+            setRadius(radius + interval);
+        });
+
+        setRadius(defaultRadius);
+
+        //////////////////////////// color picker and eraser and clear
+        const rgbToHex = (r, g, b) => {
+            const toHex = (c) => c.toString(16).padStart(2, '0');
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        };
+
+        const colorPicker = document.getElementById('colorPicker');
+        const eraser = document.getElementById('eraser');
+        const clearer = document.getElementById('clear')
+
+        const randomStartColor = rgbToHex(Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255));
+        color = randomStartColor;
+        colorPicker.value = randomStartColor;
+
+        colorPicker.addEventListener('input', function() {
+            color = this.value;
+            erasing = false;
+            colorPicker.classList.add('active');
+            eraser.classList.remove('active');
+        });
+
+        eraser.addEventListener('click', function() {
+            erasing = !erasing;
+            if (erasing) {
+                eraser.classList.add('active');
+                colorPicker.classList.remove('active');
+                radius = eraserRadius;
+            } else {
+                eraser.classList.remove('active');
+                radius = drawingRadius;
+            }
+            ctx.lineWidth = radius * 2;
+            radiusSpan.innerHTML = radius;
+        });
+
+
+        clearer.addEventListener("click", function() {
+            erasing = false;
+            eraser.classList.remove('active');
+            colorPicker.classList.remove('active');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            radius = drawingRadius;
+            ctx.lineWidth = radius * 2
+            radiusSpan.innerHTML = radius;
+            drawingData = []
+            sendNewPacket({"packet":"clear", 'room':localRoom})
+        });
+    </script>
+</body>
+</html>

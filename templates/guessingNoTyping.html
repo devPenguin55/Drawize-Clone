@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guess</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+  </head>
+  <body style="overflow: hidden">
+    <style>
+      * {
+        box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        font-family: system-ui;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+      }
+
+      #timeLeft {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        padding-bottom: 10px;
+        margin: 0;
+      }
+
+      #artist {
+        padding-bottom: 10px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex-shrink: 1;
+      }
+
+      #toolbar {
+        width: calc(100% + 20px);
+        height: 55px;
+        margin-top: -10px;
+        padding: 10px;
+        background-color: #2f2f2f;
+        color: white;
+        padding-top: 15px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-left: -10px;
+      }
+
+      .input-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 10px;
+      }
+
+      #guessInput,
+      #submitInput {
+        width: 300px;
+        height: 50px;
+        text-align: center;
+        font-size: 30px;
+        border-radius: 15px;
+        margin-top: 10px;
+      }
+
+      #submitInput {
+        width: 200px;
+      }
+
+      @keyframes slide {
+        0% {
+          left: -100%;
+        }
+        35% {
+          left: 50%;
+          transform: translateX(-50%);
+        }
+        65% {
+          left: 50%;
+          transform: translateX(-50%);
+        }
+        100% {
+          left: 120%;
+        }
+      }
+
+      .guess-box {
+        position: absolute;
+        top: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #fffb;
+        padding: 10px;
+        border-radius: 10px;
+        width: auto;
+        max-width: 300px;
+        text-align: center;
+        animation: slide 3s ease-in-out;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+    </style>
+    <div id="toolbar">
+      <h1 id="artist">Artist: {{ artist }}</h1>
+    </div>
+    <h1 id="timeLeft">Time: 1:30</h1>
+    <canvas
+      id="drawingCanvas"
+      style="border: 1px solid #000000; margin-top: 50px; margin-left: -10px"
+    ></canvas>
+    <h6 id="room" hidden>{{ room }}</h6>
+    <h6 id="username" hidden>{{ username }}</h6>
+    <script type="text/javascript">
+      //////////////////////////// drawing
+      const canvas = document.getElementById("drawingCanvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight * 0.5;
+
+      let localDrawingData;
+
+      var drawImage = function (drawingData) {
+        ctx.beginPath();
+        for (let i = 0; i < drawingData.length; i++) {
+          let data = drawingData[i];
+
+          if (data[0] === "start") {
+            // New stroke
+            let [_, startX, startY, color_, radius_] = data;
+            startX *= canvas.width;
+            startY *= canvas.height;
+            ctx.lineWidth = radius_ * 2;
+            ctx.beginPath();
+            ctx.arc(startX, startY, radius_, 0, Math.PI * 2);
+            ctx.fillStyle = color_;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+          } else if (data[0] === "beginPath") {
+            ctx.beginPath();
+          } else {
+            // Line segment
+            let [startX, startY, endX, endY, color_, radius_] = data;
+            startX *= canvas.width;
+            startY *= canvas.height;
+            endX *= canvas.width;
+            endY *= canvas.height;
+            ctx.lineWidth = radius_ * 2;
+            ctx.strokeStyle = color_;
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(endX, endY, radius_, 0, Math.PI * 2);
+            ctx.fillStyle = color_;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+          }
+        }
+      };
+
+      window.addEventListener("resize", function () {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight * 0.5;
+        console.log(localDrawingData);
+        drawImage(localDrawingData);
+      });
+    </script>
+
+    <script type="text/javascript">
+      const localRoom = document.getElementById("room").textContent;
+      const localUsername = document.getElementById("username").textContent;
+      const timeLeftElement = document.getElementById("timeLeft");
+
+      const link = "http://" + document.domain + ":" + location.port;
+      var socket = io.connect(link);
+
+      socket.on("connect", function () {
+        console.log("User Connected");
+        socket.emit("startTimeCountdown", {
+          room: localRoom,
+          username: localUsername,
+        });
+      });
+
+      socket.on("fullImage", function (data) {
+        var drawingData = data['packet']
+        var room = data['room']
+        if (room == localRoom) {
+          drawImage(drawingData);
+          localDrawingData = drawingData;
+        }
+      });
+
+      socket.on("guessingClientsNewPacket", function (packet_) {
+        var packet = packet_['packet']
+        var room = packet_['room']
+        if (room == localRoom) {
+          if (packet == "clear") {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            localDrawingData = [];
+          } else {
+            if (packet[0] === "start") {
+              let [_, startX, startY, color_, radius_] = packet;
+              startX *= canvas.width;
+              startY *= canvas.height;
+              ctx.lineWidth = radius_ * 2;
+              ctx.beginPath();
+              ctx.arc(startX, startY, radius_, 0, Math.PI * 2);
+              ctx.fillStyle = color_;
+              ctx.fill();
+              ctx.beginPath();
+              ctx.moveTo(startX, startY);
+            } else if (packet[0] === "beginPath") {
+              ctx.beginPath();
+            } else {
+              let [startX, startY, endX, endY, color_, radius_] = packet;
+              startX *= canvas.width;
+              startY *= canvas.height;
+              endX *= canvas.width;
+              endY *= canvas.height;
+              ctx.lineWidth = radius_ * 2;
+              ctx.strokeStyle = color_;
+              ctx.lineTo(endX, endY);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.arc(endX, endY, radius_, 0, Math.PI * 2);
+              ctx.fillStyle = color_;
+              ctx.fill();
+              ctx.beginPath();
+              ctx.moveTo(endX, endY);
+            }
+          }
+          localDrawingData.push(packet);
+        }
+      });
+
+      socket.on("updateTimeCountdown", function (data) {
+        console.log("update?", data);
+        if ((data["username"] == localUsername) & (data["room"] == localRoom)) {
+          timeLeftElement.textContent = "Time: " + data["timeLeft"];
+        }
+      });
+
+      socket.on("userGuessedWord", function (data) {
+        const room = data["room"];
+        const username = data["username"];
+        if ((room == localRoom) & (username != localUsername)) {
+          const guessBox = document.createElement("div");
+          guessBox.className = "guess-box";
+          guessBox.textContent = `${username} guessed the word!`;
+
+          document.body.appendChild(guessBox);
+
+          guessBox.addEventListener("animationend", () => {
+            guessBox.remove();
+          });
+        }
+      });
+
+      socket.on("animateNewGuess", function (data) {
+        const room = data["room"];
+        const username = data["username"];
+        const guess = data["guess"];
+        if (room == localRoom) {
+          const guessBox = document.createElement("div");
+          guessBox.className = "guess-box";
+          guessBox.textContent = `${username}: ${guess}`;
+
+          document.body.appendChild(guessBox);
+
+          guessBox.addEventListener("animationend", () => {
+            guessBox.remove();
+          });
+        }
+      });
+
+      socket.on("endRound", function (data) {
+        const room = data["room"];
+        if (room == localRoom) {
+          window.location.href = "/gameWait";
+        }
+      });
+    </script>
+  </body>
+</html>

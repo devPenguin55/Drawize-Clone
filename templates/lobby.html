@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artzle Lobby</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
+    <style>
+        * {
+            font-family: system-ui;
+        }
+    
+        :root::-webkit-scrollbar {
+            display: none;
+        }
+    
+        :root {
+            -ms-overflow-style: none;  
+            scrollbar-width: none;     
+        }
+    
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            margin: 0;
+            background-color: #d6e1f1;
+            padding-top: 70px; /* Account for the toolbar height */
+            overflow-y: auto; /* Enable scrolling for overflow content */
+        }
+    
+        #title {
+            padding-bottom: 10px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+    
+        #toolbar {
+            width: 100%;
+            height: 55px;
+            padding: 10px;
+            background-color: #2f2f2f;
+            color: white;
+            padding-top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            z-index: 1;
+        }
+    
+        dialog {
+            padding: 20px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+    
+        dialog::backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+    
+        button {
+            text-align: center;
+            display: block;
+            border-radius: 5px;
+            width: 140px;
+            height: 60px;
+            font-size: 20px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }   
+    
+        .modalButton {
+            text-align: center;
+            display: block;
+            border-radius: 5px;
+            width: 140px;
+            height: 60px;
+            font-size: 20px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+    
+        }
+    
+        h2 {
+            text-align: center;
+            margin-bottom: -10px;
+        }
+    
+        h4 {
+            text-align: center;
+        }
+    
+        input {
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    
+        dialog {
+            transition: opacity 0.4s cubic-bezier(0.4, 1.6, 0.4, 0.8),
+            scale 0.4s cubic-bezier(0.4, 1.6, 0.4, 0.8), overlay 0.4s allow-discrete,
+            display 0.4s allow-discrete;
+    
+            opacity: 0;
+            scale: 0;
+            &::backdrop {
+                transition: display 0.5s allow-discrete, overlay 0.5s allow-discrete,
+                background-color 0.5s;
+                background-color: hsl(0 0 0 / 0);
+            }
+    
+            &[open] {
+                opacity: 1;
+                scale: 1;
+            }
+    
+            &[open]::backdrop {
+                background-color: hsl(0 0 0 / 50%);
+            }
+        }
+    
+        @starting-style {
+            dialog[open] {
+                opacity: 0;
+                scale: 0;
+    
+                &::backdrop {
+                    background-color: hsl(0 0 0 / 0);
+                }
+            }
+        }
+    
+        h3 {
+            margin-top: 40px; /* Adjusted to ensure it appears below the toolbar */
+            text-align: center;
+            margin-bottom: 0px;
+        }
+    
+        ul {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0;
+            margin: 20px 0; /* Adjusted to ensure it appears below the toolbar */
+        }
+    
+        li {
+            list-style-type: none;
+            margin: 10px 5px;
+            text-align: center;
+            border: 2px #2f2f2f solid;
+            border-radius: 10px;
+            padding: 10px;
+        }
+    
+        #leaveButton {
+            background-color: #eec2c2;
+            height: 60px;
+        }
+    
+        .startButtonAuthorized {
+            background-color: #c9eec2;
+        }
+    
+        .startButtonUnauthorized {
+            background-color: #eec2c2;
+        }
+    
+        #startGameSubmitButton {
+            background-color: #c9eec2;
+        }
+    
+        #startCloseDialog {
+            background-color: #eec2c2;
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <h1 id="title">Room: {{ room }}</h1>
+    </div>
+    {% if userIsOwner %}
+    <h3>Room Owner -> {{ roomOwner }} (You)</h3>
+    {% else %}
+    <h3>Room Owner -> {{ roomOwner }}</h3>
+    {% endif %}
+    
+    <h2>Players</h2>
+    
+    <ul id="userList">
+        {% for user in users %}
+            {% if user == username %}
+            <li>{{ user }} (You)</li>
+            {% else %}
+            <li>{{ user }}</li>
+            {% endif %}
+            
+        {% endfor %}
+    </ul>
+
+    <h6 hidden id="username">{{ username }}</h6>
+    <h6 hidden id="userIsOwner">{{ userIsOwner }}</h6>
+    <h6 hidden id="room">{{ room }}</h6>
+
+    {% if userIsOwner %}
+        <div id="startGameWrapper">
+            <button id="openStart" class="startButtonUnauthorized">Start Game</button>
+            <dialog id="startDialog">
+                <h2>Start Game?</h2>
+                <h4 id="userCount">Players: {{ users | length }}</h4>
+                <button class="modalButton" id="startGameSubmitButton" type="submit">Start</button>       
+                <button id="startCloseDialog" class="modalButton">Cancel</button>
+            </dialog>
+        </div>
+    {% endif %}
+    <button class="modalButton" id="leaveButton">Leave Room?</button>
+
+    <script>
+        var findChild = function(targetChild) {
+            for (let i = 0; i < document.getElementById('userList').children.length; i++) {
+                var child = document.getElementById('userList').children[i];
+                if (child.textContent == targetChild) {
+                    return child
+                }
+            }
+        }
+        var updateStartGameColor = function() {
+            if (document.getElementById("userIsOwner").textContent == 'True') {
+                var values = Array.from(document.getElementById('userList').querySelectorAll('li')).map(item => item.textContent.trim());
+                var openStartButton = document.getElementById('openStart');
+                openStartButton.classList.remove('startButtonUnauthorized');
+                openStartButton.classList.remove('startButtonAuthorized');
+                if (values.length >= 2) {
+                    openStartButton.classList.add('startButtonAuthorized');
+                } else {
+                    openStartButton.classList.add('startButtonUnauthorized');
+                }
+            }
+        };
+
+        if (document.getElementById("userIsOwner").textContent == 'True') {
+            document.getElementById('openStart').addEventListener('click', () => {
+                if (document.getElementById('openStart').className == 'startButtonAuthorized') {
+                    const values = Array.from(document.getElementById('userList').querySelectorAll('li')).map(item => item.textContent.trim());
+                    document.getElementById('userCount').textContent = "Players: " + values.length.toString()
+                    document.getElementById('startDialog').showModal();
+                }
+            });
+
+            document.getElementById('startCloseDialog').addEventListener('click', () => {
+                document.getElementById('startDialog').close();
+            });
+        }
+
+        
+        var localUsername = document.getElementById("username").textContent;
+        var localRoom = document.getElementById("room").textContent;
+        const link = 'http://' + document.domain + ':' + location.port;
+        var socket = io.connect(link);
+        socket.on('connect', function() {
+            console.log('User Connected');
+            socket.emit("lobbyConnect", {'username':localUsername, 'room':localRoom})
+        });
+
+        socket.on('addUserToVisualLobbyList', function(data) {
+            var values = Array.from(document.getElementById('userList').querySelectorAll('li')).map(item => item.textContent.trim());
+            if (data['room'] == localRoom & ['username'] != localUsername & !values.includes(data['username']) & !values.includes(data['username']+' (You)')) {
+                const newUser = document.createElement('li');
+
+                newUser.textContent = data['username'];
+
+                const userList = document.getElementById('userList');
+                userList.appendChild(newUser);
+            }
+            updateStartGameColor();
+        });
+        updateStartGameColor();
+        socket.on('removeUserFromVisualLobbyList', function(data) {
+            const userList = document.getElementById('userList');
+            var values = Array.from(document.getElementById('userList').querySelectorAll('li')).map(item => item.textContent.trim());
+            console.log(data, localRoom, localUsername)
+            if (data['room'] == localRoom & data['username'] != localUsername & values.includes(data['username']) & !values.includes(data['username']+' (You)')) {
+                console.log(findChild(data['username']))
+                userList.removeChild(findChild(data['username']));
+            }
+            updateStartGameColor();
+        });
+
+        document.getElementById('leaveButton').addEventListener('click', () => {
+            socket.emit('lobbyDisconnect', {'username':localUsername, 'room':localRoom});
+            window.location.href = '/';
+        });
+
+        socket.on('changeRoomOwner', function(data) {
+            if (data['room'] == localRoom) {
+                window.location.reload()
+            } 
+        });
+        if (document.getElementById("userIsOwner").textContent == 'True') {
+            document.getElementById('startGameSubmitButton').addEventListener('click', () => {
+                socket.emit('startGame', {'room':localRoom})
+            });
+        }
+
+        socket.on('lobbyClientsSwitchToGameWait', function(room) {
+            if (room == localRoom) {
+                window.location.href = '/gameWait'
+            }
+        });
+
+    </script>
+</body>
+</html>

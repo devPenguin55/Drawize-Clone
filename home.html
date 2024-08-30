@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artzle</title>
+    <style>
+        * {
+            font-family: system-ui;
+        }
+
+        :root::-webkit-scrollbar{
+            display: none;
+        }
+
+        :root {
+            -ms-overflow-style: none;  
+            scrollbar-width: none;     
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #d6e1f1;
+        }
+
+        #title {
+            padding-bottom: 10px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        #toolbar {
+            width: 100%;
+            height: 55px;
+            padding: 10px;
+            background-color: #2f2f2f;
+            color: white;
+            padding-top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            top: 0;
+        }
+
+        dialog {
+            padding: 20px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        dialog::backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        button {
+            text-align: center;
+            display: block;
+            border-radius: 5px;
+            width: 140px;
+            height: 60px;
+            font-size: 20px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }   
+
+        .modalButton {
+            text-align: center;
+            display: block;
+            border-radius: 5px;
+            width: 140px;
+            height: 60px;
+            font-size: 20px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            margin-left: 8px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        h4 {
+            text-align: center;
+        }
+
+        input {
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+
+        dialog {
+            transition: opacity 0.4s cubic-bezier(0.4, 1.6, 0.4, 0.8),
+            scale 0.4s cubic-bezier(0.4, 1.6, 0.4, 0.8), overlay 0.4s allow-discrete,
+            display 0.4s allow-discrete;
+
+          opacity: 0;
+          scale: 0;
+          &::backdrop {
+            transition: display 0.5s allow-discrete, overlay 0.5s allow-discrete,
+              background-color 0.5s;
+            background-color: hsl(0 0 0 / 0);
+          }
+
+        &[open] {
+            opacity: 1;
+            scale: 1;
+          }
+
+          &[open]::backdrop {
+            background-color: hsl(0 0 0 / 50%);
+          }
+        }
+
+        @starting-style {
+          dialog[open] {
+            opacity: 0;
+            scale: 0;
+
+            &::backdrop {
+              background-color: hsl(0 0 0 / 0);
+            }
+          }
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <h1 id="title">Artzle</h1>
+    </div>
+    <button id="openJoin">Join Room</button>
+    <dialog id="joinDialog">
+        <h2>Join Room</h2>
+        <form action="/processJoinRoom" method="post">
+            <input type="text" name="joinRoomName" id="joinRoomName" placeholder="Room Code" required>
+            <input type="text" name="username" id="username" placeholder="Username" required>
+            <button class="modalButton" type="submit">Join</button>
+        </form>         
+        <button id="joinCloseDialog" class="modalButton">Cancel</button>
+    </dialog>
+    <button id="openCreate">Create Room</button>
+    <dialog id="createDialog">
+        <h2>Create Room</h2>
+        <form action="/processCreateRoom" method="post">
+            <h4 id="createRoomNameHeading">ERROR</h4>
+            <input hidden type="text" name="createRoomName" id="createRoomName" class="hidden">
+            <input type="text" name="username" id="username" placeholder="Username" required>
+            <button class="modalButton" type="submit" placeholder="Room Code">Create</button>
+        </form> 
+        <button id="createCloseDialog" class="modalButton">Cancel</button>
+    </dialog>
+
+    <script>
+        fetch('/getValidRoomCode')
+        .then(response => response.text())
+        .then(roomCode => {
+            document.getElementById('createRoomName').value = roomCode;
+            document.getElementById('createRoomNameHeading').innerText = roomCode;
+        })
+        .catch(error => console.error('Error:', error)); 
+
+
+        const input = document.getElementById('joinRoomName');
+        
+        input.addEventListener('input', () => {
+            input.value = input.value.toUpperCase();
+        });
+
+        document.getElementById('openJoin').addEventListener('click', () => {
+            document.getElementById('joinDialog').showModal();
+        });
+
+        document.getElementById('openCreate').addEventListener('click', () => {
+            document.getElementById('createDialog').showModal();
+            fetch('/getValidRoomCode')
+            .then(response => response.text())
+            .then(roomCode => {
+                document.getElementById('createRoomName').value = roomCode;
+                document.getElementById('createRoomNameHeading').innerText = roomCode;
+            })
+            .catch(error => console.error('Error:', error));
+            if (document.getElementById('createRoomNameHeading').innerText == 'ERROR') {
+                window.location.reload()
+            } 
+        });
+        
+
+        document.getElementById('joinCloseDialog').addEventListener('click', () => {
+            document.getElementById('joinDialog').close();
+        });
+
+        document.getElementById('createCloseDialog').addEventListener('click', () => {
+            document.getElementById('createDialog').close();
+        });
+
+    </script>
+</body>
+</html>
