@@ -1,0 +1,22 @@
+Calculating points for room DYUKXP, previous points: {'aaravTheGreat': 0, 'anjonyreggie': 0, 'hola': 0}
+    -> Finished calculating points for room DYUKXP, new points: {'aaravTheGreat': 9, 'anjonyreggie': 39, 'hola': 15}
+Calculating points for room DYUKXP, previous points: {'aaravTheGreat': 9, 'anjonyreggie': 39, 'hola': 15}
+    -> Finished calculating points for room DYUKXP, new points: {'aaravTheGreat': 58, 'anjonyreggie': 54, 'hola': 29}
+Calculating points for room DYUKXP, previous points: {'aaravTheGreat': 58, 'anjonyreggie': 54, 'hola': 29}
+    -> Finished calculating points for room DYUKXP, new points: {'aaravTheGreat': 71, 'anjonyreggie': 67, 'hola': 72}
+Calculating points for room DYUKXP, previous points: {'aaravTheGreat': 71, 'anjonyreggie': 67, 'hola': 72}
+    -> Finished calculating points for room DYUKXP, new points: {'aaravTheGreat': 84, 'anjonyreggie': 80, 'hola': 115}
+Calculating points for room DYUKXP, previous points: {'aaravTheGreat': 84, 'anjonyreggie': 80, 'hola': 115}
+    -> Finished calculating points for room DYUKXP, new points: {'aaravTheGreat': 127, 'anjonyreggie': 95, 'hola': 126}
+Calculating points for room DYUKXP, previous points: {'aaravTheGreat': 127, 'anjonyreggie': 95, 'hola': 126}
+    -> Finished calculating points for room DYUKXP, new points: {'aaravTheGreat': 143, 'anjonyreggie': 109, 'hola': 177}
+Calculating points for room DYUKXP, previous points: {'aaravTheGreat': 143, 'anjonyreggie': 109, 'hola': 177}
+    -> Finished calculating points for room DYUKXP, new points: {'aaravTheGreat': 158, 'anjonyreggie': 157, 'hola': 191}
+Calculating points for room KBLJWU, previous points: {'anjonyreggie': 0, 'aaravTheGreat': 0, 'hola': 0}
+    -> Finished calculating points for room KBLJWU, new points: {'anjonyreggie': 14, 'aaravTheGreat': 16, 'hola': 50}
+Calculating points for room KBLJWU, previous points: {'anjonyreggie': 14, 'aaravTheGreat': 16, 'hola': 50}
+Calculating points for room KBLJWU, previous points: {'anjonyreggie': 14, 'aaravTheGreat': 16, 'hola': 50}
+    -> Finished calculating points for room KBLJWU, new points: {'anjonyreggie': -16, 'aaravTheGreat': 1, 'hola': 35}
+    -> Finished calculating points for room KBLJWU, new points: {'anjonyreggie': -46, 'aaravTheGreat': -14, 'hola': 20}
+Calculating points for room KBLJWU, previous points: {'anjonyreggie': -46, 'aaravTheGreat': -14, 'hola': 20}
+    -> Finished calculating points for room KBLJWU, new points: {'anjonyreggie': -61, 'aaravTheGreat': -14, 'hola': 35}
