@@ -4,7 +4,6 @@ import random as r
 import math
 import os
 
-# ! when deploying, https needed. if running locally make it http in all html files
 
 app = Flask(__name__)
 app.secret_key = os.urandom(32)  # clears all sessions
