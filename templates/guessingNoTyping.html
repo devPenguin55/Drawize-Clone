@@ -26,6 +26,22 @@
         margin: 0;
       }
 
+      #guessedIt {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        padding-bottom: 10px;
+        margin: 0;
+        color: #aee8a3;
+        background-color:#686868;
+        padding: 15px;
+        border-radius: 25px;
+        size: 60px;
+        margin-top: 15px;
+        border: 7px solid #000000;
+        
+      }
+
       #artist {
         padding-bottom: 10px;
         margin-top: 10px;
@@ -107,11 +123,14 @@
     <div id="toolbar">
       <h1 id="artist">Artist: {{ artist }}</h1>
     </div>
+    
     <h1 id="timeLeft">Time: 1:30</h1>
+    
     <canvas
       id="drawingCanvas"
       style="border: 1px solid #000000; margin-top: 50px; margin-left: -10px"
     ></canvas>
+    <h1 id="guessedIt">You guessed the word!</h1>
     <h6 id="room" hidden>{{ room }}</h6>
     <h6 id="username" hidden>{{ username }}</h6>
     <script type="text/javascript">
@@ -177,7 +196,12 @@
       const localUsername = document.getElementById("username").textContent;
       const timeLeftElement = document.getElementById("timeLeft");
 
-      const link = "http://" + document.domain + ":" + location.port;
+      let link
+      if (window.location.protocol === "https:") {
+          link = 'https://' + document.domain + ':' + location.port;
+      } else {
+          link = 'http://' + document.domain + ':' + location.port;
+      }
       var socket = io.connect(link);
 
       socket.on("connect", function () {
