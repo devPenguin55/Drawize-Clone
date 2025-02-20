@@ -4,6 +4,8 @@ import random as r
 import math
 import os
 
+# ! when deploying, https needed. if running locally make it http in all html files
+
 app = Flask(__name__)
 app.secret_key = os.urandom(32)  # clears all sessions
 
@@ -36,7 +38,7 @@ def plainTextPage(text: str, link, linkText):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Artzle</title>
+        <title>lidi</title>
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -101,11 +103,32 @@ def getThreeWordsForSelection():  # 3-4 secs latency
     #     print(response.json())
     #     words.append(response.json()['word'])
     testWords = [
-        "table", "chair", "window", "door", "car", "bus", "train", "phone", "computer", "keyboard",
-        "mouse", "screen", "book", "pen", "notebook", "bag", "bottle", "cup", "plate", "spoon",
-        "fork", "knife", "pillow", "blanket", "lamp", "clock", "television", "shoe", "sock", "jacket"
+        "strawberry",
+        "eclipse",
+        "chandelier",
+        "ketchup",
+        "toothpaste",
+        "rainbow",
+        "beehive",
+        "lemon",
+        "wreath",
+        "waffles",
+        "bubble",
+        "whistle",
+        "snowball",
+        "bouquet",
+        "headphones",
+        "fireworks",
+        "igloo",
+        "lawnmower",
+        "summer",
+        "whisk",
+        "cupcake",
+        "bruise",
+        "fog",
+        "crust",
+        "battery"
     ]
-
 
     words = r.sample(testWords, 3)
     return words
@@ -633,5 +656,5 @@ def processGuess(data):
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=8000,
-                 allow_unsafe_werkzeug=True, debug=False)
+    # socketio.run(app, host='0.0.0.0', port=8000, allow_unsafe_werkzeug=True, debug=False)
+    socketio.run(app, host='192.168.0.87', port=5000, allow_unsafe_werkzeug=True, debug=False)
